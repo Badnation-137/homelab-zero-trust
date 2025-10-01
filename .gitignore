@@ -1,0 +1,25 @@
+# Binaries / Large executables
+kubectl
+terraform
+helm
+docker
+ansible
+
+# Log & temp files
+*.log
+*.tmp
+*.swp
+
+# Sensitive / Config files
+.ssh/
+.kube/
+!inventory/
+!playbooks/
+!templates/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Ansible cache
+!.ansible.cfg
