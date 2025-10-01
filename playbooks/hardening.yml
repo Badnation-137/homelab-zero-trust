@@ -1,0 +1,90 @@
+---
+# playbooks/hardening.yml
+- name: 🔐 Harden Ubuntu Server (Baseline Security)
+  hosts: server
+  become: yes
+  vars:
+    ssh_port: 22
+    allowed_network: "192.168.18.141/24"   # Ganti sesuai jaringan kamu
+    timezone: Asia/Jakarta
+
+  pre_tasks:
+    - name: 🔄 Update package cache
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+
+  tasks:
+    - name: 📦 Full system upgrade
+      apt:
+        upgrade: full
+        autoremove: yes
+        autoclean: yes
+
+    - name: ⏰ Set timezone
+      timezone:
+        name: "{{ timezone }}"
+      notify: restart cron
+
+    - name: 🔥 Install and enable UFW (firewall)
+      ufw:
+        state: enabled
+        policy: deny
+      notify: reload ufw
+
+    - name: 🔓 Allow SSH from local network
+      ufw:
+        rule: allow
+        src: "{{ allowed_network }}"
+        port: "{{ ssh_port }}"
+        proto: tcp
+
+    - name: 🚫 Disable root login via SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: PermitRootLogin no
+        state: present
+
+    - name: 🔑 Disable password authentication (SSH key only)
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: PasswordAuthentication no
+        state: present
+
+    - name: 🔄 Restart SSH service
+      systemd:
+        name: ssh
+        state: restarted
+        daemon_reload: yes
+
+    - name: 🛡️ Install Fail2ban
+      apt:
+        name: fail2ban
+        state: present
+        autoremove: yes
+
+    - name: 📄 Deploy jail.local config
+      template:
+        src: ../templates/jail.local.j2
+        dest: /etc/fail2ban/jail.local
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart fail2ban
+
+  handlers:
+    - name: reload ufw
+      ufw:
+        state: enabled
+
+    - name: restart fail2ban
+      systemd:
+        name: fail2ban
+        state: restarted
+
+    - name: restart cron
+      systemd:
+        name: cron
+        state: restarted
