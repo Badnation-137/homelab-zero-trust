@@ -1,0 +1,9 @@
+---
+- name: 🛡️ Deploy Network Policy to k3s
+  hosts: server
+  become: yes
+  tasks:
+    - name: Apply network policy
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/network-policy.yml"
